@@ -17,9 +17,12 @@
   - [운영](#운영)
     - [클라우드 배포](#클라우드-배포---Container-운영)
     - [컨테이너 자동확장 - HPA](#컨네이터-자동확장---HPA)
-    - [오토스케일 아웃](#오토스케일-아웃)
-    - [무정지 재배포](#무정지-재배포)
-  - [신규 개발 조직의 추가](#신규-개발-조직의-추가)
+    - [ConfigMap](#ConfigMap)
+    - [PVC활용](#PVC활용)
+    - [Rediness 무정지 재배포](#Rediness-무정지-재배포)
+    - [서비스 메쉬](#서비스-메쉬)
+    - [Loggregation](#Loggregation)
+
 
 # 서비스 시나리오
 
@@ -55,6 +58,8 @@
  이벤트 드리븐 아키텍처에 따라 각 서비스 호출 시 비동기 방식으로 이루어질 수 있도록 구상하였다.
 
 # MSA 아키텍처 구성도
+
+*********
 
 # 구현:
 
@@ -123,8 +128,7 @@ http localhost:8083/trains
 ```
 ![image](https://github.com/yidaeun39/chatbot/assets/47437659/c5f07b0f-c80f-448d-8871-4cd514fe5c6b)
 ![image](https://github.com/yidaeun39/chatbot/assets/47437659/10bd0a66-612a-45d6-ab45-a26906960b00)
-
-- 
+ 
 
 ## Compensation Transaction
 - 사용자가 Chat 서비스에서 상품의 요청 사항을 작성 할 경우 Train 서비스에서 해당 요청이 가능한 요청인지 판단한다.
@@ -153,14 +157,14 @@ http localhost:8083/trains
       });
   }
 ```
+- 여기서 카프카 토픽 캡처 나오면 될듯
 
 ## Gateway
 - 상단 서비스 목록에서는 언급하지 않았지만 msaez에서 제공하는 gateway 서비스를 통해 트래픽 라우팅 룰을 정의한다.
-- 
+- 키알리 캡처
 
 ## Dashboard
-데이터 정합성을 위한 Read Model인 CQRS 서비스를 생성한다. Microcks API를 사용하여 Mocking 기반 구현 패턴
-
+데이터 정합성을 위한 Read Model인 CQRS 서비스를 생성한다.
 
 
 *********
@@ -212,263 +216,27 @@ NAME   REFERENCE         TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
 chat   Deployment/chat   6%/15%    1         10        10         15m
 ```
 
+## ConfigMap
+- 환경설정 정보를 바꾸기 위해 전체 CI/CD 파이프라인을 태워 배포하는 것을 방지하기 위해 ConfgMap을 생성한다.
+![image](https://github.com/yidaeun39/chatbot/assets/47437659/05ea50f6-b855-4101-919b-6a629fa8a262)
 
+## PVC활용
+- Amazon EFS를 활용하여 스토리지 클래스를 생성한다.
+![image](https://github.com/yidaeun39/chatbot/assets/47437659/b74a7fb4-4f43-4011-83c3-51630c396fea)
+![image](https://github.com/yidaeun39/chatbot/assets/47437659/4b8e6f73-86b2-45ff-a1b6-2888db5168d3)
+
+## Rediness 무정지 재배포
+- yaml에 readinessProbe 설정 후 seige로 배포작업 도중 워크로드를 모니터링 함으로서, Availability가 떨어지지 않고 100% 유지됐는지 확인한다. 
+![image](https://github.com/yidaeun39/chatbot/assets/47437659/dc242394-7a04-4d95-9716-5d4e0703676d)
+
+## 서비스 메쉬
+- Istio를 통해 안정된 서비스와 배포전략을 시행한다. Istio를 통해 배포된 파드는 sidecar가 injection되어 POD가 (2/2)로 노출되는 것을 확인할 수 있다.
+![image](https://github.com/yidaeun39/chatbot/assets/47437659/4b21d230-a49a-484c-8ed3-a32a8d2a8815)
+
+## Loggregation
+- 키바나 로그인을 위해서 ID/PW 정보를 미리 수집해둔다.
 ```
-kubectl autoscale deploy pay --min=1 --max=10 --cpu-percent=15
+id : elastic
+pw : kubectl get secrets --namespace=logging elasticsearch-master-credentials -ojsonpath='{.data.password}' | base64 -d
 ```
-- CB 에서 했던 방식대로 워크로드를 2분 동안 걸어준다.
-```
-siege -c100 -t120S -r10 --content-type "application/json" 'http://localhost:8081/orders POST {"item": "chicken"}'
-```
-- 오토스케일이 어떻게 되고 있는지 모니터링을 걸어둔다:
-```
-kubectl get deploy pay -w
-```
-- 어느정도 시간이 흐른 후 (약 30초) 스케일 아웃이 벌어지는 것을 확인할 수 있다:
-```
-NAME    DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
-pay     1         1         1            1           17s
-pay     1         2         1            1           45s
-pay     1         4         1            1           1m
-:
-```
-- siege 의 로그를 보아도 전체적인 성공률이 높아진 것을 확인 할 수 있다. 
-```
-Transactions:		        5078 hits
-Availability:		       92.45 %
-Elapsed time:		       120 secs
-Data transferred:	        0.34 MB
-Response time:		        5.60 secs
-Transaction rate:	       17.15 trans/sec
-Throughput:		        0.01 MB/sec
-Concurrency:		       96.02
-```
-
-
-## 무정지 재배포
-
-* 먼저 무정지 재배포가 100% 되는 것인지 확인하기 위해서 Autoscaler 이나 CB 설정을 제거함
-
-- seige 로 배포작업 직전에 워크로드를 모니터링 함.
-```
-siege -c100 -t120S -r10 --content-type "application/json" 'http://localhost:8081/orders POST {"item": "chicken"}'
-
-** SIEGE 4.0.5
-** Preparing 100 concurrent users for battle.
-The server is now under siege...
-
-HTTP/1.1 201     0.68 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.68 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.70 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.70 secs:     207 bytes ==> POST http://localhost:8081/orders
-:
-
-```
-
-- 새버전으로의 배포 시작
-```
-kubectl set image ...
-```
-
-- seige 의 화면으로 넘어가서 Availability 가 100% 미만으로 떨어졌는지 확인
-```
-Transactions:		        3078 hits
-Availability:		       70.45 %
-Elapsed time:		       120 secs
-Data transferred:	        0.34 MB
-Response time:		        5.60 secs
-Transaction rate:	       17.15 trans/sec
-Throughput:		        0.01 MB/sec
-Concurrency:		       96.02
-
-```
-배포기간중 Availability 가 평소 100%에서 70% 대로 떨어지는 것을 확인. 원인은 쿠버네티스가 성급하게 새로 올려진 서비스를 READY 상태로 인식하여 서비스 유입을 진행한 것이기 때문. 이를 막기위해 Readiness Probe 를 설정함:
-
-```
-# deployment.yaml 의 readiness probe 의 설정:
-
-
-kubectl apply -f kubernetes/deployment.yaml
-```
-
-- 동일한 시나리오로 재배포 한 후 Availability 확인:
-```
-Transactions:		        3078 hits
-Availability:		       100 %
-Elapsed time:		       120 secs
-Data transferred:	        0.34 MB
-Response time:		        5.60 secs
-Transaction rate:	       17.15 trans/sec
-Throughput:		        0.01 MB/sec
-Concurrency:		       96.02
-
-```
-
-배포기간 동안 Availability 가 변화없기 때문에 무정지 재배포가 성공한 것으로 확인됨.
-
-
-# 신규 개발 조직의 추가
-
-  ![image](https://user-images.githubusercontent.com/487999/79684133-1d6c4300-826a-11ea-94a2-602e61814ebf.png)
-
-
-## 마케팅팀의 추가
-    - KPI: 신규 고객의 유입률 증대와 기존 고객의 충성도 향상
-    - 구현계획 마이크로 서비스: 기존 customer 마이크로 서비스를 인수하며, 고객에 음식 및 맛집 추천 서비스 등을 제공할 예정
-
-## 이벤트 스토밍 
-    ![image](https://user-images.githubusercontent.com/487999/79685356-2b729180-8273-11ea-9361-a434065f2249.png)
-
-
-## 헥사고날 아키텍처 변화 
-
-![image](https://user-images.githubusercontent.com/487999/79685243-1d704100-8272-11ea-8ef6-f4869c509996.png)
-
-## 구현  
-
-기존의 마이크로 서비스에 수정을 발생시키지 않도록 Inbund 요청을 REST 가 아닌 Event 를 Subscribe 하는 방식으로 구현. 기존 마이크로 서비스에 대하여 아키텍처나 기존 마이크로 서비스들의 데이터베이스 구조와 관계없이 추가됨. 
-
-## 운영과 Retirement
-
-Request/Response 방식으로 구현하지 않았기 때문에 서비스가 더이상 불필요해져도 Deployment 에서 제거되면 기존 마이크로 서비스에 어떤 영향도 주지 않음.
-
-* [비교] 결제 (pay) 마이크로서비스의 경우 API 변화나 Retire 시에 app(주문) 마이크로 서비스의 변경을 초래함:
-
-예) API 변화시
-```
-# Order.java (Entity)
-
-    @PostPersist
-    public void onPostPersist(){
-
-        fooddelivery.external.결제이력 pay = new fooddelivery.external.결제이력();
-        pay.setOrderId(getOrderId());
-        
-        Application.applicationContext.getBean(fooddelivery.external.결제이력Service.class)
-                .결제(pay);
-
-                --> 
-
-        Application.applicationContext.getBean(fooddelivery.external.결제이력Service.class)
-                .결제2(pay);
-
-    }
-```
-
-예) Retire 시
-```
-# Order.java (Entity)
-
-    @PostPersist
-    public void onPostPersist(){
-
-        /**
-        fooddelivery.external.결제이력 pay = new fooddelivery.external.결제이력();
-        pay.setOrderId(getOrderId());
-        
-        Application.applicationContext.getBean(fooddelivery.external.결제이력Service.class)
-                .결제(pay);
-
-        **/
-    }
-```
-
-
-
-
-
-
-
-
-[# 
-
-## Model
-www.msaez.io/#/47437659/storming/test
-
-## Before Running Services
-### Make sure there is a Kafka server running
-```
-cd kafka
-docker-compose up
-```
-- Check the Kafka messages:
-```
-cd infra
-docker-compose exec -it kafka /bin/bash
-cd /bin
-./kafka-console-consumer --bootstrap-server localhost:9092 --topic
-```
-
-## Run the backend micro-services
-See the README.md files inside the each microservices directory:
-
-- product
-- train
-- dashboard
-- marketing
-
-
-## Run API Gateway (Spring Gateway)
-```
-cd gateway
-mvn spring-boot:run
-```
-
-## Test by API
-- product
-```
- http :8088/products id="id" productId="productId" productName="productName" productType="productType" 
-```
-- train
-```
- http :8088/items id="id" productId="productId" productName="productName" productType="productType" viewCnt="viewCnt" orderCnt="orderCnt" cartCnt="cartCnt" userId="userId" 
-```
-- dashboard
-```
-```
-- marketing
-```
- http :8088/marketings id="id" marketingId="marketingId" marketingName="marketingName" marketerId="marketerId" productId="productId" productName="productName" productType="productType" 
-```
-
-
-## Run the frontend
-```
-cd frontend
-npm i
-npm run serve
-```
-
-## Test by UI
-Open a browser to localhost:8088
-
-## Required Utilities
-
-- httpie (alternative for curl / POSTMAN) and network utils
-```
-sudo apt-get update
-sudo apt-get install net-tools
-sudo apt install iputils-ping
-pip install httpie
-```
-
-- kubernetes utilities (kubectl)
-```
-curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
-```
-
-- aws cli (aws)
-```
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-unzip awscliv2.zip
-sudo ./aws/install
-```
-
-- eksctl 
-```
-curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
-sudo mv /tmp/eksctl /usr/local/bin
-```
-
-](https://workflowy.com/s/assessment-check-po/T5YrzcMewfo4J6LW)
+![image](https://github.com/yidaeun39/chatbot/assets/47437659/6a7e3c64-8051-47d5-9b6f-fcb43ad30807)
