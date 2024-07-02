@@ -25,10 +25,6 @@ spring:
           uri: http://localhost:8085
           predicates:
             - Path=/marketings/**, 
-        - id: frontend
-          uri: http://localhost:8080
-          predicates:
-            - Path=/**
 #>>> API Gateway / Routes
       globalcors:
         corsConfigurations:
@@ -65,10 +61,6 @@ spring:
           uri: http://marketing:8080
           predicates:
             - Path=/marketings/**, 
-        - id: frontend
-          uri: http://frontend:8080
-          predicates:
-            - Path=/**
       globalcors:
         corsConfigurations:
           '[/**]':

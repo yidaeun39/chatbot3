@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: chat
-          image: "username/chat:latest"
+          image: "yidaeun39/chat:v1"
           ports:
             - containerPort: 8080
           readinessProbe:
