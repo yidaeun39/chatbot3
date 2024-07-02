@@ -61,29 +61,12 @@ public class Chat {
         requested.publishAfterCommit();
     }
 
-    //>>> Clean Arch / Port Method
-
-    //<<< Clean Arch / Port Method
     public static void changeRequestType(Refused refused) {
-        //implement business logic here:
-
-        /** Example 1:  new item 
-        Chat chat = new Chat();
-        repository().save(chat);
-
-        */
-
-        /** Example 2:  finding and process
-        
-        repository().findById(refused.get???()).ifPresent(chat->{
-            
-            chat // do something
-            repository().save(chat);
-
-
-         });
-        */
-
+        repository().findById(refused.getId()).ifPresent(v ->{
+            // 승인되지 않을 경우 request type을 0으로 변경
+            v.setRequestType("0");
+            repository().save(v);
+        });
     }
 
     //>>> Clean Arch / Port Method

@@ -16,6 +16,7 @@ public class Refused extends AbstractEvent {
     private Integer questionCnt;
     private Integer requestCnt;
     private String trainId;
+    private String requestType;
 
     public Refused(Train aggregate) {
         super(aggregate);

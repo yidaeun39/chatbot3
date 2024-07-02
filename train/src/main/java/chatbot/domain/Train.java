@@ -57,89 +57,44 @@ public class Train {
         return trainRepository;
     }
 
-    //<<< Clean Arch / Port Method
     public static void searchChat(Chated chated) {
-        //implement business logic here:
-
-        /** Example 1:  new item 
+        // 검색과 동시에 train 데이터 생성
         Train train = new Train();
+        train.setId(chated.getId());
+        train.setProductId(chated.getProductId());
         repository().save(train);
-
-        */
-
-        /** Example 2:  finding and process
-        
-        repository().findById(chated.get???()).ifPresent(train->{
-            
-            train // do something
-            repository().save(train);
-
-
-         });
-        */
-
     }
 
-    //>>> Clean Arch / Port Method
-    //<<< Clean Arch / Port Method
+
     public static void questionChat(Questioned questioned) {
-        //implement business logic here:
+        repository().findById(Long.valueOf(questioned.getId())).ifPresentOrElse(train->{
 
-        /** Example 1:  new item 
-        Train train = new Train();
-        repository().save(train);
-
-        Trained trained = new Trained(train);
-        trained.publishAfterCommit();
-        */
-
-        /** Example 2:  finding and process
-        
-        repository().findById(questioned.get???()).ifPresent(train->{
-            
-            train // do something
+            // 현재 질문 카운트에 수에 + 1
+            train.setQuestionCnt(train.getQuestionCnt() + 1);
             repository().save(train);
-
-            Trained trained = new Trained(train);
-            trained.publishAfterCommit();
-
-         });
-        */
-
+        }, 
+        ()->{
+            Train train = new Train();
+            train.setId(questioned.getId());
+            train.setProductId(questioned.getProductId());
+            train.setQuestionCnt(1);
+            repository().save(train);
+        });
     }
 
-    //>>> Clean Arch / Port Method
-    //<<< Clean Arch / Port Method
     public static void requestChat(Requested requested) {
-        //implement business logic here:
-
-        /** Example 1:  new item 
-        Train train = new Train();
-        repository().save(train);
-
-        Refused refused = new Refused(train);
-        refused.publishAfterCommit();
-        Accepted accepted = new Accepted(train);
-        accepted.publishAfterCommit();
-        */
-
-        /** Example 2:  finding and process
-        
-        repository().findById(requested.get???()).ifPresent(train->{
+        repository().findById(Long.valueOf(requested.getId())).ifPresent(train->{
+            if(requested.getRequestMsg().equals("불가능")){
+                Refused refused = new Refused(train);
+                refused.setRequestType("0"); 
+                refused.publishAfterCommit();
+            }else{
+                train.setRequestCnt(train.getRequestCnt() + 1);
+                repository().save(train);
+            }
             
-            train // do something
-            repository().save(train);
-
-            Refused refused = new Refused(train);
-            refused.publishAfterCommit();
-            Accepted accepted = new Accepted(train);
-            accepted.publishAfterCommit();
-
-         });
-        */
-
+        });
     }
-    //>>> Clean Arch / Port Method
 
 }
 //>>> DDD / Aggregate Root
