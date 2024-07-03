@@ -154,7 +154,7 @@ http localhost:8083/trains/1
 ### 컨테이너 자동확장 - HPA
 
 - 유저가 급증하는 상황을 대비하여 ChatBot 서비스에 대한 replica를 동적으로 늘려주도록 HPA 를 설정한다. 설정은 CPU 사용량이 15프로를 넘어서면 replica 를 10개까지 늘려주게 지정하였다.
-- 
+
 ![image](https://github.com/yidaeun39/chatbot/assets/47437659/7d6b06d5-24a6-4f9b-9b75-8c86607e8a49)
 
 deployment.yaml에도 CPU 스펙을 추가하고 재배포한다.
