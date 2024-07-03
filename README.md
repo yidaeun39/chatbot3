@@ -1,4 +1,4 @@
-
+![image](https://github.com/yidaeun39/chatbot/assets/47437659/f3663718-63f0-4f31-9501-a01204d26409)
 # KTDS 3차 Final Assessment 수행 리포트
 
 # Table of contents
@@ -50,7 +50,7 @@
 
 # 클라우드 아키텍처 구성도
  ## EDA 구성
- 이벤트 드리븐 아키텍처에 따라 각 서비스 호출 시 비동기 방식으로 이루어질 수 있도록 구성하였다.
+ 이벤트 드리븐 아키텍처에 따라 각 서비스 호출 시 비동기 방식으로 이루어질 수 있도록 구상하였다.
 ![image](https://github.com/yidaeun39/chatbot3/assets/47437659/766ce333-3f92-4610-8503-6a3aa91fe41e)
 
 # Event Storming
@@ -109,10 +109,6 @@ public class Chat {
 ## Saga
 - Event Shunting 비동기 호출을 위한 EDA로 클러스터 내에 Apache Kafka를 설치한다. 사용자가 chat 서비스에 상품을 검색/질문/요청 했을 때 이벤트 드리븐하게 로직이 실행되고, 이벤트가 카프카에서 확인된다.
 ```
-helm repo add bitnami https://charts.bitnami.com/bitnami
-helm repo update
-helm install my-kafka bitnami/kafka --version 23.0.5
-
 docker-compose exec -it kafka /bin/bash
 cd /bin
 
@@ -121,12 +117,15 @@ cd /bin
 ```
 - chatbot에 상품을 초기 검색한다. 검색과 동시에 train 서비스에 분석을 위한 동일한 데이터가 생성된 것을 확인 할 수 있다. 
 ```
-http localhost:8082/chats id=1 productId=001
-http localhost:8083/trains
+http localhost:8082/chats id=1 productId=001 userId=39
+http localhost:8083/trains/1
 ```
 ![image](https://github.com/yidaeun39/chatbot/assets/47437659/c5f07b0f-c80f-448d-8871-4cd514fe5c6b)
 ![image](https://github.com/yidaeun39/chatbot/assets/47437659/10bd0a66-612a-45d6-ab45-a26906960b00)
- 
+- 생성된 상품 데이터로 질문 작성 시 질문 train 서비스의 질문 카운트가 올라가는 것을 확인 할 수 있다.
+![image](https://github.com/yidaeun39/chatbot3/assets/47437659/1dcd2acf-50ab-4cff-a9d3-acb9061f217e)
+- kafka Topic 확인
+![image](https://github.com/yidaeun39/chatbot3/assets/47437659/be4b568e-93e3-47a0-a1c6-48e96cfb71b1)
 
 ## Compensation Transaction
 - 사용자가 Chat 서비스에서 상품의 요청 사항을 작성 할 경우 Train 서비스에서 해당 요청이 가능한 요청인지 판단한다.
@@ -155,19 +154,23 @@ http localhost:8083/trains
       });
   }
 ```
-- 여기서 카프카 토픽 캡처 나오면 될듯
+![image](https://github.com/yidaeun39/chatbot3/assets/47437659/3a3c2866-71c0-4482-b475-68a2500118eb)
 
 ## Gateway
-- 상단 서비스 목록에서는 언급하지 않았지만 msaez에서 제공하는 gateway 서비스를 통해 트래픽 라우팅 룰을 정의한다.
-- 키알리 캡처
+- Nginx Ingres를 사용하여 단일 진입점을 생성한다.
+![image](https://github.com/yidaeun39/chatbot3/assets/47437659/fea8664c-16d4-46bb-9445-9276ad1e61d3)
+- gateway 서비스를 이용하여 LaodBalance로 사용
+![image](https://github.com/yidaeun39/chatbot/assets/47437659/ed62bebf-ab28-4911-9944-f54418f0c2b3)
+![image](https://github.com/yidaeun39/chatbot/assets/47437659/450e749d-e96a-4cd8-89c4-c1a03c052499)
 
 ## Dashboard
 - 데이터 정합성을 위한 Read Model인 CQRS Dashboard 서비스를 설정한다.
 Train 데이터가 생성되며 Create되고, 마케터가 유저정보를 patched 할 때 Update 된다.
 ```
-http PATH http://train:8083 id=1 productId=1 trainId=1
-http PATH http://train:8084 id=1 productId=1 trainId=1
+http PATCH aff17c33e6470474cbe45e22673d86c5-528551918.ap-southeast-2.elb.amazonaws.com:8080/trains/2 trainId=2
 ```
+![image](https://github.com/yidaeun39/chatbot/assets/47437659/8bb28dbd-1e47-48f1-8d92-b9f9ebc6984b)
+![image](https://github.com/yidaeun39/chatbot/assets/47437659/7dba60ab-4415-445a-85fb-6bcd235a0e5c)
 
 *********
 
@@ -233,7 +236,7 @@ chat   Deployment/chat   6%/15%    1         10        10         15m
 
 ## 서비스 메쉬
 - Istio를 통해 안정된 서비스와 배포전략을 시행한다. Istio를 통해 배포된 파드는 sidecar가 injection되어 POD가 (2/2)로 노출되는 것을 확인할 수 있다.
-![image](https://github.com/yidaeun39/chatbot/assets/47437659/4b21d230-a49a-484c-8ed3-a32a8d2a8815)
+![image](https://github.com/yidaeun39/chatbot/assets/47437659/98a7f767-86de-4b99-a43b-7bf75b577a39)
 
 ## Loggregation
 - Kibana Web Admin 접속을 위해서 ID/PW 정보를 미리 수집해둔다.
@@ -242,3 +245,5 @@ id : elastic
 pw : kubectl get secrets --namespace=logging elasticsearch-master-credentials -ojsonpath='{.data.password}' | base64 -d
 ```
 ![image](https://github.com/yidaeun39/chatbot/assets/47437659/6a7e3c64-8051-47d5-9b6f-fcb43ad30807)
+- chatbot namespace를 필터링
+![image](https://github.com/yidaeun39/chatbot3/assets/47437659/0a591e34-3f6d-4a55-a268-be732ee63b55)
