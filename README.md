@@ -1,4 +1,4 @@
-![image](https://github.com/yidaeun39/chatbot/assets/47437659/f3663718-63f0-4f31-9501-a01204d26409)
+
 # KTDS 3차 Final Assessment 수행 리포트
 
 # Table of contents
