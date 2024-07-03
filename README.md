@@ -120,8 +120,11 @@ http localhost:8083/trains/1
 
 ## Dashboard
 - 데이터 정합성을 위한 Read Model인 CQRS Dashboard 서비스를 설정한다. Trained 이벤트 발생시 Create되고, 마케터가 유저정보를 patched 할 때 Update 된다.
+  
 ![image](https://github.com/yidaeun39/chatbot/assets/47437659/6e120da3-f21c-4f82-99c8-a61ed53e26b2)
+
 - train 서비스가 종료되어도 대시보드 서비스에서 데이터 확인 가능.
+- 
 ![image](https://github.com/yidaeun39/chatbot/assets/47437659/ca1ddf58-a08d-469d-982c-5726c02ed16a)
 
 
@@ -150,9 +153,13 @@ http localhost:8083/trains/1
 ### 컨테이너 자동확장 - HPA
 
 - 유저가 급증하는 상황을 대비하여 ChatBot 서비스에 대한 replica를 동적으로 늘려주도록 HPA 를 설정한다. 설정은 CPU 사용량이 15프로를 넘어서면 replica 를 10개까지 늘려주게 지정하였다.
+- 
 ![image](https://github.com/yidaeun39/chatbot/assets/47437659/7d6b06d5-24a6-4f9b-9b75-8c86607e8a49)
+
 deployment.yaml에도 CPU 스펙을 추가하고 재배포한다.
+
 ![image](https://github.com/yidaeun39/chatbot/assets/47437659/d0a51f66-d3f0-4980-ab3e-b8f814faf4ae)
+
 pod가 확장되며, CPU가 늘어난 것을 확인 할 수 있다.
 ```
 gitpod /workspace/chatbot3 (main) $ kubectl get hpa
