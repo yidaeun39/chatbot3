@@ -39,6 +39,7 @@
 9. 마케터가 추천 상품을 카카오로 전송한다
 
 # 클라우드 아키텍처 구성도
+ ## EDA 구성
  이벤트 드리븐 아키텍처에 따라 각 서비스 호출 시 비동기 방식으로 이루어질 수 있도록 구성하였다.
 ![image](https://github.com/yidaeun39/chatbot3/assets/47437659/766ce333-3f92-4610-8503-6a3aa91fe41e)
 
@@ -120,12 +121,10 @@ http localhost:8083/trains/1
 ## Dashboard
 - 데이터 정합성을 위한 Read Model인 CQRS Dashboard 서비스를 설정한다.
 Trained 이벤트 발생시 Create되고, 마케터가 유저정보를 patched 할 때 Update 된다.
-```
-http PATCH aff17c33e6470474cbe45e22673d86c5-528551918.ap-southeast-2.elb.amazonaws.com:8080/trains/2 trainId=2
-```
 ![image](https://github.com/yidaeun39/chatbot/assets/47437659/6e120da3-f21c-4f82-99c8-a61ed53e26b2)
-![image](https://github.com/yidaeun39/chatbot/assets/47437659/8bb28dbd-1e47-48f1-8d92-b9f9ebc6984b)
-![image](https://github.com/yidaeun39/chatbot/assets/47437659/7dba60ab-4415-445a-85fb-6bcd235a0e5c)
+- train 서비스가 종료되어도 대시보드 서비스에서 데이터 확인 가능.
+![image](https://github.com/yidaeun39/chatbot/assets/47437659/ca1ddf58-a08d-469d-982c-5726c02ed16a)
+
 
 *********
 
@@ -180,7 +179,7 @@ chat   Deployment/chat   6%/15%    1         10        10         15m
 ![image](https://github.com/yidaeun39/chatbot/assets/47437659/98a7f767-86de-4b99-a43b-7bf75b577a39)
 
 ## Loggregation
-- EFK(Elasticsearch, Fluentd, Kibana)를 활용하여 로그를 수집하고 시각화 한다. Kibana Web Admin 접속을 위해서 ID/PW 정보를 미리 수집해둔다.
+- Kibana Web Admin 접속을 위해서 ID/PW 정보를 미리 수집해둔다.
 ```
 id : elastic
 pw : kubectl get secrets --namespace=logging elasticsearch-master-credentials -ojsonpath='{.data.password}' | base64 -d
