@@ -10,7 +10,7 @@
   - [구현:](#구현-)
     - [DDD의 적용](#DDD의-적용)
     - [Saga](#Saga)
-    - [Compensation Transaction](#Compensation-Transaction)
+    - [보상처리-Compensation Transaction](#보상처리---Compensation-Transaction)
     - [Gateway](#Gateway)
     - [Dashboard](#Dashboard)
   - [운영](#운영)
@@ -37,20 +37,10 @@
 7. 학습 데이터를 마케팅 데이터로 전송한다
 8. 마케터가 해당하는 사용자를 조회하여 데이터를 패치한다
 9. 마케터가 추천 상품을 카카오로 전송한다
- 
-비기능적 요구사항
-1. 트랜잭션
-    1. 검색이 되지 않은 데이터는 분석 데이터가 생성되지 않는다 Sync 호출
-1. 장애격리
-    1. 데이터 분석 시스템에 장애가 발생하더라도 마케팅 시스템은 추천 및 유저 데이터 패치가 이루어져야 한다. Async (event-driven), Eventual Consistency
-    1. 챗봇 시스템이 과중되면 검색 및 요청을 잠시후에 하도록 유도한다 Circuit breaker, fallback
-1. 성능
-    1. 대시보드를 통해 해당 상품의 질문 건 수와 요청 건 수를 확인 할 수 있다
-
 
 # 클라우드 아키텍처 구성도
  ## EDA 구성
- 이벤트 드리븐 아키텍처에 따라 각 서비스 호출 시 비동기 방식으로 이루어질 수 있도록 구상하였다.
+ 이벤트 드리븐 아키텍처에 따라 각 서비스 호출 시 비동기 방식으로 이루어질 수 있도록 구성하였다.
 ![image](https://github.com/yidaeun39/chatbot3/assets/47437659/766ce333-3f92-4610-8503-6a3aa91fe41e)
 
 # Event Storming
@@ -77,44 +67,9 @@ cd marketing
 mvn spring-boot:run 
 ```
 
-## DDD의 적용
-
-- 각 서비스내에 도출된 핵심 Aggregate Root 객체를 Entity 로 선언하였다. 
-
-```
-package chatbot.domain;
-
-@Entity
-@Table(name = "Chat_table")
-@Data
-public class Chat {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    private Long id;
-
-    private String productId;
-
-    private String questionMsg;
-
-    private String requestMsg;
-
-    private String requestType;
-
-    private String userId;
-}
-
-```
-
 ## Saga
 - Event Shunting 비동기 호출을 위한 EDA로 클러스터 내에 Apache Kafka를 설치한다. 사용자가 chat 서비스에 상품을 검색/질문/요청 했을 때 이벤트 드리븐하게 로직이 실행되고, 이벤트가 카프카에서 확인된다.
-```
-docker-compose exec -it kafka /bin/bash
-cd /bin
-
-./kafka-console-consumer --bootstrap-server localhost:9092 --topic labshoppubsub  --from-beginning
-
-```
+ex)
 - chatbot에 상품을 초기 검색한다. 검색과 동시에 train 서비스에 분석을 위한 동일한 데이터가 생성된 것을 확인 할 수 있다. 
 ```
 http localhost:8082/chats id=1 productId=001 userId=39
@@ -127,7 +82,7 @@ http localhost:8083/trains/1
 - kafka Topic 확인
 ![image](https://github.com/yidaeun39/chatbot3/assets/47437659/be4b568e-93e3-47a0-a1c6-48e96cfb71b1)
 
-## Compensation Transaction
+## 보상처리 - Compensation Transaction
 - 사용자가 Chat 서비스에서 상품의 요청 사항을 작성 할 경우 Train 서비스에서 해당 요청이 가능한 요청인지 판단한다.
 ```
   public static void requestChat(Requested requested) {
@@ -159,16 +114,17 @@ http localhost:8083/trains/1
 ## Gateway
 - Nginx Ingres를 사용하여 단일 진입점을 생성한다.
 ![image](https://github.com/yidaeun39/chatbot3/assets/47437659/fea8664c-16d4-46bb-9445-9276ad1e61d3)
-- gateway 서비스를 이용하여 LaodBalance로 사용
+- gateway 서비스를 LaodBalance 사용
 ![image](https://github.com/yidaeun39/chatbot/assets/47437659/ed62bebf-ab28-4911-9944-f54418f0c2b3)
 ![image](https://github.com/yidaeun39/chatbot/assets/47437659/450e749d-e96a-4cd8-89c4-c1a03c052499)
 
 ## Dashboard
 - 데이터 정합성을 위한 Read Model인 CQRS Dashboard 서비스를 설정한다.
-Train 데이터가 생성되며 Create되고, 마케터가 유저정보를 patched 할 때 Update 된다.
+Trained 이벤트 발생시 Create되고, 마케터가 유저정보를 patched 할 때 Update 된다.
 ```
 http PATCH aff17c33e6470474cbe45e22673d86c5-528551918.ap-southeast-2.elb.amazonaws.com:8080/trains/2 trainId=2
 ```
+![image](https://github.com/yidaeun39/chatbot/assets/47437659/6e120da3-f21c-4f82-99c8-a61ed53e26b2)
 ![image](https://github.com/yidaeun39/chatbot/assets/47437659/8bb28dbd-1e47-48f1-8d92-b9f9ebc6984b)
 ![image](https://github.com/yidaeun39/chatbot/assets/47437659/7dba60ab-4415-445a-85fb-6bcd235a0e5c)
 
@@ -177,20 +133,6 @@ http PATCH aff17c33e6470474cbe45e22673d86c5-528551918.ap-southeast-2.elb.amazona
 # 운영
 
 ## 클라우드 배포 - Container 운영
-
-각 서비스들은 메이븐 빌드하여 docker hub에 업로드한다.
-![image](https://github.com/yidaeun39/chatbot/assets/47437659/ce35facd-8cd5-45a7-8cab-96df301504b2)
-
-yaml 배포 방식을 통해 도커 이미지 주소를 설정하고 컨테이너에 배포한다. 
-```
-spec:
-      containers:
-        - name: chat
-          image: "yidaeun39/chat:v1"
-
-kubectl apply -f kubernetes/deployment.yaml
-```
-
 각 구현체들은 각자의 source repository 에 구성되었고, 사용한 CI/CD 플랫폼은 CodeBuild를 사용하였으며, pipeline build script 는 각 프로젝트 폴더 이하에 buildspec.yml 에 포함되었다.
 * 세팅 시 런타임 버전 확인 필요
 * https://docs.aws.amazon.com/ko_kr/codebuild/latest/userguide/build-env-ref-available.html
@@ -205,12 +147,12 @@ kubectl apply -f kubernetes/deployment.yaml
 ![image](https://github.com/yidaeun39/chatbot/assets/47437659/d989dada-8f28-4caf-b376-b4e7ebdd5604)
 6. git repository에서 push 작업 수행 후 정상적으로 자동 배포되는지 확인.
 ![image](https://github.com/yidaeun39/chatbot/assets/47437659/11c2ad4f-6ae7-4ae0-a617-856587f19fb8)
-7. S3에 Pipeline cache 한다.
+8. S3에 Pipeline cache 한다. (BUILD 속도 증가!)
 ![image](https://github.com/yidaeun39/chatbot/assets/47437659/f819c477-40fb-4564-8d05-ec9d3f6fd6e8)
 
 ### 컨테이너 자동확장 - HPA
 
-- 유저가 급증하는 상황을 대비하여 ChatBot 서비스에 대한 replica를 동적으로 늘려주도록 HPA 를 설정한다. 설정은 CPU 사용량이 15프로를 넘어서면 replica 를 10개까지 늘려주게 지지정하였다.
+- 유저가 급증하는 상황을 대비하여 ChatBot 서비스에 대한 replica를 동적으로 늘려주도록 HPA 를 설정한다. 설정은 CPU 사용량이 15프로를 넘어서면 replica 를 10개까지 늘려주게 지정하였다.
 ![image](https://github.com/yidaeun39/chatbot/assets/47437659/7d6b06d5-24a6-4f9b-9b75-8c86607e8a49)
 deployment.yaml에도 CPU 스펙을 추가하고 재배포한다.
 ![image](https://github.com/yidaeun39/chatbot/assets/47437659/d0a51f66-d3f0-4980-ab3e-b8f814faf4ae)
