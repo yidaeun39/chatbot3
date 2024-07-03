@@ -114,7 +114,8 @@ http localhost:8083/trains/1
 ## Gateway
 - Nginx Ingres를 사용하여 단일 진입점을 생성한다.
 ![image](https://github.com/yidaeun39/chatbot3/assets/47437659/fea8664c-16d4-46bb-9445-9276ad1e61d3)
-- gateway 서비스를 LaodBalance 사용
+- gateway 서비스를 LaodBalance 사용하며 Kiali로 시각화한 모습
+  
 ![image](https://github.com/yidaeun39/chatbot/assets/47437659/ed62bebf-ab28-4911-9944-f54418f0c2b3)
 ![image](https://github.com/yidaeun39/chatbot/assets/47437659/450e749d-e96a-4cd8-89c4-c1a03c052499)
 
@@ -124,7 +125,7 @@ http localhost:8083/trains/1
 ![image](https://github.com/yidaeun39/chatbot/assets/47437659/6e120da3-f21c-4f82-99c8-a61ed53e26b2)
 
 - train 서비스가 종료되어도 대시보드 서비스에서 데이터 확인 가능.
-- 
+  
 ![image](https://github.com/yidaeun39/chatbot/assets/47437659/ca1ddf58-a08d-469d-982c-5726c02ed16a)
 
 
