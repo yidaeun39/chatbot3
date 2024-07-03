@@ -39,7 +39,6 @@
 9. 마케터가 추천 상품을 카카오로 전송한다
 
 # 클라우드 아키텍처 구성도
- ## EDA 구성
  이벤트 드리븐 아키텍처에 따라 각 서비스 호출 시 비동기 방식으로 이루어질 수 있도록 구성하였다.
 ![image](https://github.com/yidaeun39/chatbot3/assets/47437659/766ce333-3f92-4610-8503-6a3aa91fe41e)
 
@@ -181,7 +180,7 @@ chat   Deployment/chat   6%/15%    1         10        10         15m
 ![image](https://github.com/yidaeun39/chatbot/assets/47437659/98a7f767-86de-4b99-a43b-7bf75b577a39)
 
 ## Loggregation
-- Kibana Web Admin 접속을 위해서 ID/PW 정보를 미리 수집해둔다.
+- EFK(Elasticsearch, Fluentd, Kibana)를 활용하여 로그를 수집하고 시각화 한다. Kibana Web Admin 접속을 위해서 ID/PW 정보를 미리 수집해둔다.
 ```
 id : elastic
 pw : kubectl get secrets --namespace=logging elasticsearch-master-credentials -ojsonpath='{.data.password}' | base64 -d
