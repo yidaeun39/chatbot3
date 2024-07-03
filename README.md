@@ -119,8 +119,7 @@ http localhost:8083/trains/1
 ![image](https://github.com/yidaeun39/chatbot/assets/47437659/450e749d-e96a-4cd8-89c4-c1a03c052499)
 
 ## Dashboard
-- 데이터 정합성을 위한 Read Model인 CQRS Dashboard 서비스를 설정한다.
-Trained 이벤트 발생시 Create되고, 마케터가 유저정보를 patched 할 때 Update 된다.
+- 데이터 정합성을 위한 Read Model인 CQRS Dashboard 서비스를 설정한다. Trained 이벤트 발생시 Create되고, 마케터가 유저정보를 patched 할 때 Update 된다.
 ![image](https://github.com/yidaeun39/chatbot/assets/47437659/6e120da3-f21c-4f82-99c8-a61ed53e26b2)
 - train 서비스가 종료되어도 대시보드 서비스에서 데이터 확인 가능.
 ![image](https://github.com/yidaeun39/chatbot/assets/47437659/ca1ddf58-a08d-469d-982c-5726c02ed16a)
